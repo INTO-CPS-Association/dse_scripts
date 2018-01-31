@@ -1,9 +1,26 @@
-import os, sys, json, io, webbrowser, csv
+import os, sys, json, io, webbrowser, csv, re
 from libs.Common import *
 
 
 absoluteExperimentDir = sys.argv[1]
 absoluteResultsPath = sys.argv[2]
+
+def atof(text):
+    try:
+        retval = float(text)
+    except ValueError:
+        retval = text
+    return retval
+
+def natural_keys(text):
+    '''
+    alist.sort(key=natural_keys) sorts in human order
+    http://nedbatchelder.com/blog/200712/human_sorting.html
+    (See Toothy's implementation in the comments)
+    float regex comes from https://stackoverflow.com/a/12643073/190597
+    '''
+    return [ atof(c) for c in re.split(r'[+-]?([0-9]+(?:[.][0-9]*)?|[.][0-9]+)', text) ]
+
 
 def addGraphsForRanking(rank_id):
 	htmlFile.write('<img src=graphs/' + rank_id + '.png>\n')
@@ -17,6 +34,8 @@ def putRankingsIntoTable(rank_id):
 def addRows(rank_id):
 	this_ranking_root = ranking_json[rank_id]
 	sorted_ranks = sorted(this_ranking_root)
+	#sorted_ranks = this_ranking_root
+	sorted_ranks.sort(key=natural_keys)
 	for rank in sorted_ranks:
 		for design in this_ranking_root[rank]:
 			addRow(rank,design)
@@ -81,6 +100,8 @@ def putRankingsIntoCSV(rank_id):
 def addRowsToCSV(rank_id):
 	this_ranking_root = ranking_json[rank_id]
 	sorted_ranks = sorted(this_ranking_root)
+	#sorted_ranks = this_ranking_root
+	sorted_ranks.sort(key=natural_keys)
 	for rank in sorted_ranks:
 		for design in this_ranking_root[rank]:
 			addRowToCSV(rank,design)
@@ -88,10 +109,8 @@ def addRowsToCSV(rank_id):
 def addRowToCSV(rank, design):
 	rowData = []
 	rowData.append(rank)
-	print('.', rowData)
 	addObjectiveValuesToCSVRow(design, rowData)
 	addDesignParametersToCSVRow(design, rowData)
-	print('...', rowData)
 	csvWriter.writerow(rowData)
 	
 def addDesignParametersToCSVRow(design, currentRow):
@@ -100,25 +119,20 @@ def addDesignParametersToCSVRow(design, currentRow):
 	params_json = config_json['parameters']
 	for param in params_json:
 		currentRow.append(str(params_json[param]))
-		print('..', currentRow)
-		#htmlFile.write('<td>' + str(params_json[param]) + '</td>')
 
 def addObjectiveValuesToCSVRow(design, currentRow):
 	objectivesData = open(absoluteResultsPath + os.path.sep + design + os.path.sep + OBJECTIVES_FILE)
 	objectives_json = json.load(objectivesData)
 	for objective in objectives_json:
 		currentRow.append(str(objectives_json[objective]))
-		print('..', currentRow)
-		#htmlFile.write('<td>' + str(objectives_json[objective]) + '</td>')
+
 	
 def addHeadingsToCSV():
 	rowData = []
 	rowData.append('Rank')
-	print('.', rowData)
 	firstSim = ranking_json['simulations'][0]
 	getObjectiveHeadingsForCSVRow(firstSim, rowData)
 	getParameterHeadingsForCSVRow(firstSim, rowData)
-	print('...', rowData)
 	csvWriter.writerow(rowData)
 	
 def getObjectiveHeadingsForCSVRow(design, currentRow):
@@ -126,8 +140,7 @@ def getObjectiveHeadingsForCSVRow(design, currentRow):
 	objectives_json = json.load(objectivesData)
 	for objective in objectives_json:
 		currentRow.append(objective)
-		print('..', currentRow)
-		#htmlFile.write('<th>' + objective + '</th>')
+
 	
 	
 def getParameterHeadingsForCSVRow(design, currentRow):
@@ -136,8 +149,6 @@ def getParameterHeadingsForCSVRow(design, currentRow):
 	params_json = config_json['parameters']
 	for param in params_json:
 		currentRow.append(trimmedParamName(param))
-		print('..', currentRow)
-		#htmlFile.write('<th>' + trimmedParamName(param) + '</th>')
 	
 
 
