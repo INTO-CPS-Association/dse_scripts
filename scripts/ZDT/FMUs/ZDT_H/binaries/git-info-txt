@@ -1,0 +1,30 @@
+origin	git@gitlab.au.dk:into-cps/shm-fmi.git (fetch)
+origin	git@gitlab.au.dk:into-cps/shm-fmi.git (push)
+781d9f2b8fc25dd52de249dadce4bc6a45d3b05f refs/remotes/origin/build-test
+6715001d7feb91aec0ffc9084cedac6ad765db1a refs/remotes/origin/development
+3063f0668cdf265df9bfdc185c16c362e5d22241 refs/remotes/origin/guid-key
+9d07153f65c4ebe263937da76f266f24f8be3fb6 refs/remotes/origin/jenkins
+68cd58e9e8ac99108bcd777abac74d63a7617839 refs/remotes/origin/kel/linux-fork+configfile
+ef14345c31d247f7da73ee61028050c0b5d461aa refs/remotes/origin/kel/mac
+fb781261d53e507649253c67d99097d4bd35111b refs/remotes/origin/kel/mac2
+6baf2d5dcea82715df2f92514d92c5c9ecc94c66 refs/remotes/origin/kel/sem_waitfor
+13170ae9e474b33db2d5fa7efd7e072410a03dca refs/remotes/origin/kel/sharedmemory
+418f6c8d3d4d2d21935439ac42a361239e9b0411 refs/remotes/origin/kel/sharedmemory-linux
+99c34793e198f04e83a908838d08aa92d5a846ed refs/remotes/origin/master
+380eb5d93ff592b09577d78b328e567dd816070d refs/remotes/origin/static
+737153150b7ca2c1d9d16618d5e529c15495e56a refs/remotes/origin/test
+0f99d4d3b806943feade80048e187fd43ac2ea67 refs/remotes/origin/test2
+6e36bf99e82050bf4faa81fe68156dda1815a323 refs/remotes/origin/xbuild
+c6b3b2f41b5698ac0ea51a645a95e567950e2f86 refs/remotes/origin/xbuild-fixes
+0b07f78d121676e366321d78b2c1ba6aea002ae7 refs/remotes/origin/xbuild-fixes2
+6ffbfa0baa7bc4756f7c3cbbaa702077868f7af2 refs/remotes/origin/xbuild-fixes2-testfix
+732dc1d0a6e401c536588daba5809475b41a466f refs/tags/Release/0.0.2
+51723fe1854f83ec296ed4e688cfec710895a9bd refs/tags/Release/0.0.4
+e6ee0144ceed2a0b38f3baa942a4d15ca9f858d6 refs/tags/Release/0.0.6
+f00befc73f4adb203a353d8d7035821ed8245cdb refs/tags/Release/0.1.0
+9b2d597175793453ed483860bde40c186fd0391b refs/tags/Release/0.1.2
+1dcf28444e71de3514861958e424fcf3902337e2 refs/tags/Release/0.1.4
+1a80d38297981bd83a47a772a7d42361302dbb18 refs/tags/Release/0.1.6
+520e6cba5d5624627f8db5eec8e745ac8ff0943a refs/tags/Release/0.2.0
+17819bdba334867bd9a23968fe73c6250d1ee77f refs/tags/grpc
+6715001d7feb91aec0ffc9084cedac6ad765db1a

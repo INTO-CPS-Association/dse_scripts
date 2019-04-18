@@ -1,0 +1,64 @@
+class G
+
+instance variables 
+
+solution_variables: seq of real := []
+
+operations
+
+-- constructor for G
+public G: () ==> G
+G() == 
+(
+	solution_variables := parse_seq_of_real(System`hwi.solution_variables.getValue());
+);
+
+-- periodic operation
+Step: () ==> ()
+Step() == cycles(20) 
+(
+	-- compute metric
+	let g = sum(solution_variables) - hd solution_variables, 
+	    c = 9 / (len solution_variables - 1),
+	    o = c * g + 1
+	in (
+	  -- debug
+	  IO`printf("solution.variables = %s", [solution_variables]);
+	  IO`printf("solution.variables[0] = %s", [hd solution_variables]);
+	  IO`printf("solution.number_of_variables = %s", [len solution_variables]);
+	  IO`printf("constant = %s", [c]);
+	  IO`printf("g = %s", [o]);
+		-- pass to H FMU
+		System`hwi.f.setValue(hd solution_variables);
+		System`hwi.g.setValue(o);
+		IO`printf("g = %s\n", [o])
+	);
+);
+
+operations
+
+-- convert string to seq of real 
+parse_seq_of_real: seq of char ==> seq of real
+parse_seq_of_real(ss) == 
+(
+	dcl rs: seq of real := [];
+	
+	let mk_(success, vs) = VDMUtil`seq_of_char2val[seq of real](ss) 
+	in if success then rs := vs;
+
+	return rs
+) 
+pre len ss > 0
+
+functions
+
+sum: seq of real -> real
+sum(s) == 
+	if len s = 0 then 0 
+  elseif len s = 1 then hd s 
+  else hd s + sum(tl s)
+
+thread
+periodic(1e9, 0, 0, 0)(Step)
+
+end G

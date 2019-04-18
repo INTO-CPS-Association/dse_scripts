@@ -1,0 +1,23 @@
+system System
+
+instance variables
+
+--Hardware interface variable required by FMU Import/Export
+public static hwi : HardwareInterface := new HardwareInterface();
+
+public static h: [H] := nil;
+
+cpu : CPU := new CPU(<FP>, 1E6);
+
+operations
+public System : () ==> System
+System()==
+(
+	-- create g object
+	h := new H();
+	
+	-- deploy objects
+	cpu.deploy(h,  "H");
+);
+
+end System

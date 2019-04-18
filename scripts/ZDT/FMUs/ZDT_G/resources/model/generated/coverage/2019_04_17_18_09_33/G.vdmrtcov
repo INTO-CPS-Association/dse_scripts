@@ -1,0 +1,57 @@
+class G
+
+instance variables 
+
+solution_variables: seq of real := [0.9996466595128627,6.527852428408129e-05,0.00012274707009990769,0.00018752649374704228,1.6369994094274528e-05,7.175554965727576e-05,1.942812662567619e-05,0.00028530380128766826,7.560929919723371e-05,0.00012821372667228982,2.10693376858039e-06,0.00020630307395662286,0.0001229123811130556,4.320014484245701e-05,0.00021022522243240583,4.8578622776169564e-05,4.616870286772162e-05,1.2233739262176678e-05,0.0008907392191753184,8.079052118169173e-05,0.0001595820605019989,0.00010495698150286,5.1509517017361145e-05,5.2976786718536496e-05,0.00010443603179323872,0.00022884532962928232,8.115230888656315e-05,4.761674229189959e-05,2.450023954261339e-05,0.0002628011021196943]--[]
+
+operations
+
+-- constructor for G
+public G: () ==> G
+G() == 
+(
+	solution_variables := parse_seq_of_real(System`hwi.solution_variables.getValue());
+);
+
+-- periodic operation
+Step: () ==> ()
+Step() == cycles(20) 
+(
+	-- compute metric
+	let g = sum(solution_variables) - hd solution_variables, 
+	    c = (9 / len(solution_variables) - 1),
+	    o = c * g + 1
+	in (
+		-- pass to H FMU
+		System`hwi.f.setValue(hd solution_variables);
+		System`hwi.g.setValue(o);
+		IO`printf("g = %s\n", [o])
+	);
+);
+
+operations
+
+-- convert string to seq of real 
+parse_seq_of_real: seq of char ==> seq of real
+parse_seq_of_real(ss) == 
+(
+	dcl rs: seq of real := [];
+	
+	let mk_(success, vs) = VDMUtil`seq_of_char2val[seq of real](ss) 
+	in if success then rs := vs;
+
+	return rs
+) 
+pre len ss > 0
+
+functions
+
+sum: seq of real -> real
+sum(s) == 
+  if len s = 1 then hd s 
+  else hd s + sum(tl s)
+
+thread
+periodic(1e9, 0, 0, 0)(Step)
+
+end G

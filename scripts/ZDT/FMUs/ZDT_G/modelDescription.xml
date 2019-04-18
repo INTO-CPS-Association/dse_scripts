@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<fmiModelDescription 	fmiVersion="2.0" 
+						modelName="ZDT_G" 
+						guid="{6c56212a-0d51-4155-9ddf-1303cbbb735c}" 
+						description="" 
+						author="" 
+						version="Version 1" 
+						copyright="Copyright Overture tool (Aarhus University)" 
+						license="Some Overture FMI License" 
+						generationTool="Overture Tool FMI Exporter - v0.2.18"
+						generationDateAndTime="2019-04-17T16:19:14" 
+						variableNamingConvention="flat" 
+						numberOfEventIndicators="0">
+
+	<CoSimulation 	modelIdentifier="ZDT_G" 
+					needsExecutionTool="true" 
+					canHandleVariableCommunicationStepSize="true" 
+					canInterpolateInputs="false" 
+					maxOutputDerivativeOrder="0" 
+					canRunAsynchronuously="false" 
+					canBeInstantiatedOnlyOncePerProcess="false"
+					canNotUseMemoryManagementFunctions="true" 
+					canGetAndSetFMUstate="false" 
+					canSerializeFMUstate="false" 
+					providesDirectionalDerivative="false">
+		
+		
+			<SourceFiles>
+				<File name="HardwareInterface.vdmrt" />
+				<File name="System.vdmrt" />
+				<File name="VDMUtil.vdmrt" />
+				<File name="World.vdmrt" />
+				<File name="lib\Fmi.vdmrt" />
+				<File name="lib\IO.vdmrt" />
+				<File name="G.vdmrt" />
+
+			</SourceFiles>
+		
+		</CoSimulation>
+
+
+
+	<LogCategories>
+		<Category name="logAll" />
+		<Category name="logError" />
+		<Category name="logFmiCall" />
+<!-- Category name="logShm" /-->
+<!-- Category name="logLaunch" /-->
+		<Category name="Protocol" />
+		<Category name="VdmOut" />
+		<Category name="VdmErr" />
+	</LogCategories>
+
+	<VendorAnnotations>
+		<Tool name="Overture">
+			<Overture>
+				<link valueReference="0" name="System.hwi.f.value" />
+				<link valueReference="1" name="System.hwi.g.value" />
+				<link valueReference="2" name="HardwareInterface.solution_variables.value" />
+
+			</Overture>
+		</Tool>
+	</VendorAnnotations>
+
+
+	<ModelVariables>
+
+		<!-- Index 1 -->
+		<ScalarVariable name="f" valueReference="0" causality="output" variability="discrete" initial="approx"><Real start="0.0" /></ScalarVariable>
+		<!-- Index 2 -->
+		<ScalarVariable name="g" valueReference="1" causality="output" variability="discrete" initial="approx"><Real start="0.0" /></ScalarVariable>
+		<!-- Index 3 -->
+		<ScalarVariable name="solution_variables" valueReference="2" causality="parameter" variability="fixed" initial="exact"><String start="[]" /></ScalarVariable>
+
+	
+	</ModelVariables>
+
+	<ModelStructure>
+	<Outputs>
+			<Unknown index="1"  dependencies=""/>			<Unknown index="2"  dependencies=""/>
+	</Outputs>
+
+
+	</ModelStructure>
+
+</fmiModelDescription>

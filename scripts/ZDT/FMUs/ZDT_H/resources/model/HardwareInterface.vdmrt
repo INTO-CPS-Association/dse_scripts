@@ -1,0 +1,19 @@
+class HardwareInterface
+
+-- INPUT VARIABLES
+instance variables
+
+  -- @ interface: type = input, name="f";
+  public f : RealPort := new RealPort(0);
+  
+  -- @ interface: type = input, name="g";
+  public g : RealPort := new RealPort(0);
+
+
+-- OUTPUT VARIABLES
+instance variables
+
+  -- @ interface: type = output, name="h";
+  public h : RealPort := new RealPort(0);
+   
+end HardwareInterface

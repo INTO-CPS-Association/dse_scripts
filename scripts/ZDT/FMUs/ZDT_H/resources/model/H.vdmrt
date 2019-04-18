@@ -1,0 +1,53 @@
+class H
+
+values
+
+SKIP_CYCLES = 2
+
+instance variables
+
+private init: int := 0
+
+operations
+
+-- periodic operation
+Step: () ==> ()
+Step() == cycles(20) 
+(
+	if init < SKIP_CYCLES then 
+	(
+		-- skip first cycles when values are being initialised
+		init := init + 1; 
+		return
+	)
+	else
+	(
+		-- compute metric from G FMU
+		let f = System`hwi.f.getValue(),
+			  g = System`hwi.g.getValue(),
+			  h = 1.0 - safe_sqrt(f / g)
+		in (
+			-- debug
+			IO`printf("f = %s", [f]);
+			IO`printf("g = %s", [g]);
+			IO`printf("sqrt(f/g) = %s", [safe_sqrt(f / g)]);
+			IO`printf("h = %s", [h]); 
+			-- set output
+			System`hwi.h.setValue(h);
+			IO`printf("f = %s, g = %s, h = %s\n", [f,g,h])
+		)
+	)
+);
+
+functions
+
+safe_sqrt: real -> real
+safe_sqrt(x) == 
+	if x < 0 
+	then 1 
+	else MATH`sqrt(x) 
+
+thread
+periodic(1e9, 0, 0, 0)(Step)
+
+end H
