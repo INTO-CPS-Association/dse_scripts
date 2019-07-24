@@ -108,7 +108,7 @@ print("Starting the ranking...")
 call(["python", "Ranking_pareto.py" ,absoluteExperimentPath, absoluteExperimentConfigPath,  absoluteResultsPath])
 print("Ranking complete.")
 print("Generating results page...")
-call(["python", "Output_HTML.py", absoluteExperimentPath, absoluteExperimentConfigPath, absoluteResultsPath])
+call(["python", "Output_HTML.py", absoluteExperimentPath, absoluteResultsPath])
 print("Page complete.")
 
 timingScriptEnd = time.time()
