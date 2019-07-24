@@ -406,7 +406,7 @@ while phaseChosen == False:
 
 		#Generating HTML output page
 		print("Generating results page...")
-		subprocess.call(["python", "Output_HTML.py", absoluteExperimentPath, absoluteResultsPath])
+		subprocess.call(["python", "Output_HTML.py", absoluteExperimentPath, absoluteExperimentConfigPath, absoluteResultsPath])
 		print("Page complete.")
 		print("DSE complete.")
 		

@@ -1,9 +1,13 @@
-import os, sys, json, io, webbrowser, csv, re
+import os, sys, json, io, webbrowser, csv, re, matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
 from libs.Common import *
 
 
 absoluteExperimentDir = sys.argv[1]
-absoluteResultsPath = sys.argv[2]
+absoluteExperimentConfigPath = sys.argv[2]
+absoluteResultsPath = sys.argv[3]
+
 
 def atof(text):
     try:
@@ -22,8 +26,132 @@ def natural_keys(text):
     return [ atof(c) for c in re.split(r'[+-]?([0-9]+(?:[.][0-9]*)?|[.][0-9]+)', text) ]
 
 
+########################################################
+# generate graphs and add to HTML
+########################################################
+
+
+def loadObjectiveValuesForDesign(design):
+	objectives_file = open(os.path.join(absoluteResultsPath,design,OBJECTIVES_FILE))
+	objectives_json = json.load(objectives_file)
+	return objectives_json
+
+
+def loadObjectivesData(rank_id):
+	objectives_data = {}
+	ranking_root = ranking_json[rank_id]
+	for rank in ranking_root:
+		objectives_data[rank] = {}
+		this_rank_root = ranking_root[rank]
+		for design in this_rank_root:
+			objectives_data[rank][design]=loadObjectiveValuesForDesign(design)
+	return objectives_data
+
+def getObjectiveDirections():
+	dseConfigData = open(absoluteExperimentConfigPath)
+	dseConfigJson = json.load(dseConfigData)
+	paretoDetails = dseConfigJson['ranking']['pareto']
+	objectiveDirections = {}
+	for objective in paretoDetails:
+		objectiveDirections[objective] = paretoDetails[objective]
+	return objectiveDirections
+
+
+
+def createGraphCombinations(objective_directions, objectives_data):
+	keys = objective_directions.keys()
+	print 'keys', keys
+	for firstObjective in range (0, len(keys)):
+		print 'firstobjective', keys[firstObjective]
+		for secondObjective in range (firstObjective + 1, len(keys)):
+			print 'secondobjective', keys[secondObjective]
+			generateGraph(keys[firstObjective], keys[secondObjective], objectives_data)
+			addGraphToPage(keys[firstObjective], keys[secondObjective])
+            
+
+def generateGraph(firstObjective, secondObjective, objectives_data):
+	print 'generating graph', firstObjective, secondObjective, objectives_data
+	graphFolder = absoluteResultsPath + os.path.sep +  GRAPHS_FOLDER
+	if not os.path.exists(graphFolder):
+		os.makedirs(graphFolder)
+	# plot pareto fron in blue
+	fig = Figure()
+	ax = fig.add_subplot(1,1,1)
+	non_dominated_set = True
+	odd = True
+	for rank in objectives_data:
+
+		print 'rank', rank
+		Xs=[]
+		Ys=[]
+
+		unsortedPointsList = []
+		for design in objectives_data[rank]:
+
+			print 'design', design
+
+			print 'des first', objectives_data[rank][design][firstObjective]
+			print 'des secon', objectives_data[rank][design][secondObjective]
+			
+			#Xs.append(objectives_data[rank][design][firstObjective])
+			#Ys.append(objectives_data[rank][design][secondObjective])
+			this_result=[objectives_data[rank][design][firstObjective],objectives_data[rank][design][secondObjective]]
+			unsortedPointsList.append(this_result)
+
+		sortedPointList = sorted(unsortedPointsList)
+		for result in sortedPointList:
+			Xs.append(result[0])
+			Ys.append(result[1])			
+
+		if non_dominated_set:
+			ax.plot(Xs, Ys, 'g')
+			ax.plot(Xs, Ys, 'go')
+			non_dominated_set = False
+		else:
+			if odd:
+				odd = False
+				ax.plot(Xs, Ys, 'r')
+				ax.plot(Xs, Ys, 'ro')
+			else:
+				odd = True
+				ax.plot(Xs, Ys, 'y')
+				ax.plot(Xs, Ys, 'yo')
+	
+	ax.set_xlabel(firstObjective)
+	ax.set_ylabel(secondObjective)
+
+	plotFileName = os.path.join(graphFolder, firstObjective + '-' + secondObjective + ".png")
+	canvas = FigureCanvas(fig)
+	canvas.print_figure(plotFileName, dpi=75)
+
+def addGraphToPage(firstObjective, secondObjective):
+	#htmlFile.write('<img src=graphs/' + rank_id + '.png>\n')
+	htmlFile.write('<img src=graphs/' + firstObjective + '-' + secondObjective + '.png>\n')
+
+
 def addGraphsForRanking(rank_id):
-	htmlFile.write('<img src=graphs/' + rank_id + '.png>\n')
+	objectives_data = loadObjectivesData(rank_id)
+	objectives_directions = getObjectiveDirections()
+	createGraphCombinations(objectives_directions, objectives_data)
+
+
+
+#Output graphs
+#graphFolder = absoluteResultsPath + os.path.sep +  GRAPHS_FOLDER
+#if not os.path.exists(graphFolder):
+#	os.makedirs(graphFolder)
+
+
+
+
+
+
+
+
+#####################################################
+# add numeric ranking data to HTML
+#####################################################
+
 
 def putRankingsIntoTable(rank_id):
 	htmlFile.write('<table>\n')
@@ -183,7 +311,7 @@ rank_id = 'pareto'
 # create section
 htmlFile.write('<h1>' + rank_id + '</h1>\n')
 
-# add graph
+# add graphs
 addGraphsForRanking(rank_id)
 
 # add table of data with id, objective values and parameters
