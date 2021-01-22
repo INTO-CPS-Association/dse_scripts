@@ -1,9 +1,32 @@
-# Dissertaion
+# INTO CPS DSE Scripts
 
-Repo For my dissertation
+Updated old Python 2 scripts to Python 3 and added a modular GA system among other minor improvements
 
-Due to an issue with Numpy, Python 3.9, and Windows currently Numpy 1.19.4 will not work and you will require Numpy 1.19.3
+## Highlights
+- Updated to Python 3
+- Powerful command line arguements
+- Added multi threading to allow for multiple parallel simulations
+- Added modular GA system
+- FMU parameter names {fmu}.dummy.ab will no longer be incorrectly matched with {fmu}.dummy.a for constraints
 
+## Dependancies
+- Python 3
+- Numpy
+- Matplotlib
+
+## Known Issues
+  - Numpy 1.19.4, Python 3.9, and Windows do not play nice and insted requires Numpy 1.19.3
+
+## Command Line Arguments
+
+(Arguments apply to Algroithm Selector, Exhaustive, and Genetic)
+
+- help
+- `t` Number of threads to use, default 1
+- `noCSV` do not generate CSV result file, default false
+- `noHTML` do not generate HTML result file, default false
+- `u` URL to COE, default http://localhost
+- `p` Port for COE, default 8082
 
 ## DSE Config for GA's
 
@@ -18,7 +41,7 @@ An example config for the use of GA's with the COE engine is shown below with ex
     Constraints on organism parameters
   ],
   "parameters": {
-    "parameter Name": [min value, max value], Parameters to run the DSE on with a min and max ragne to create the initial population from 
+    "parameter name": [min value, max value], Parameters to run the DSE on with a min and max ragne to create the initial population from 
   },
   "geneticArguments": 
   {
