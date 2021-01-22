@@ -1,119 +1,170 @@
-# change to dse directory for calling other scripts
-import os,sys, time
-try:
-  os.chdir(os.path.dirname(os.path.realpath(__file__)))
-except WindowsError, OSError:
-  print 'Error changing to scripts directory'
-  sys.exit(1)
-  
-import json, platform, subprocess, time, io, math
-from subprocess import CalledProcessError 
+import argparse
+import itertools
+from concurrent.futures.thread import ThreadPoolExecutor
+import concurrent.futures
+import random
 from libs.Common import *
 
-argumentsCountNormal = 4
-argumentsCountRepairMode = 5
+debugOutput = False
 
-timingScriptStart = time.time()
+def runScript():
+    # Get all the needed arguments
+    args = scriptArguments().parse_args()
+    basePath = args.projectpath
+    dseRelativePath = args.dsepath
+    coeRelativePath = args.coepath
+    threads = args.t
 
-print ("DSE Exhaustive v 6.0 starting")
+    global debugOutput
+    debugOutput = args.d
+
+    try:
+        os.chdir(os.path.dirname(os.path.realpath(__file__)))
+    except (WindowsError, OSError) as e:
+        print("Error changing path, exiting")
+        exit(1)
+
+    if debugOutput:
+        print(f"Starting Exhaustive with: {basePath}, {dseRelativePath}, {coeRelativePath}")
+    else:
+        print("Starting Exhaustive DSE")
+
+    timeScriptExecutionStart = time.time()
+
+    # Get the paths to everything
+    coePath = os.path.join(basePath, coeRelativePath)
+
+    dsePathConfig = os.path.join(basePath, dseRelativePath)
+    trimLocation = dsePathConfig.rfind(os.path.sep)
+    dsePath = dsePathConfig[:trimLocation] + os.path.sep
+
+    # load DSE
+    if debugOutput:
+        print("\t\tOpening DSE config")
+
+    with open(dsePathConfig) as f:
+        dseConfig = json.load(f)
+
+    # load the MM's
+    parsedMMJson = combineModelFiles(coePath, dseConfig, basePath, debugOutput)
+
+    # output folder
+    if debugOutput:
+        print("\t\tCreating output folder")
+
+    dateTimeFolder = dateTimeFolderName()
+    makeDateTimeFolder(dsePath, dateTimeFolder)
+    resultsPath = os.path.join(dsePath, dateTimeFolder)
+
+    print(f"\t\tOutput folder created at {resultsPath}")
+
+    # create combinations
+    if debugOutput:
+        print("\t\tCreating Combinations")
+    viable = getAllViableParametersCombinations(getAllParameterCombinations(dseConfig['parameters']), dseConfig['parameterConstraints'])
+    if debugOutput:
+        print(f"\t\t\tFound {len(viable)} viable combinations")
+
+    # simulate things
+    print("\t\tStarting simulations...")
+    timeSimulationsStart = time.time()
+    iterateOverScenarios(dseConfig['scenarios'], viable, parsedMMJson, dseConfig, resultsPath, basePath, threads, [f"-u {args.u}", f"-p {args.p}"], debugOutput)
+    timeSimulationsEnd = time.time()
+    print("\t\tSimulations complete!")
+
+    # rank things
+    print("\t\tRanking results...")
+    subprocess.call(["python", "Ranking_pareto.py", dsePath, dsePathConfig, resultsPath, "-d={}".format(debugOutput)])
+    print("\t\tRanking finished")
+
+    if not args.noHTML:
+        print("\t\tGenerating HTML results page...")
+        subprocess.call(["python", "Output_HTML.py", resultsPath])
+        print("\t\tHTML results page generated")
+
+    if not args.noCSV:
+        print("\t\tGenerating CSV results file...")
+        subprocess.call(["python", "Output_CSV.py", resultsPath])
+        print("\t\tCSV results file generated")
+
+    timeScriptExecutionEnd = time.time()
+
+    print("\t\tTiming:")
+    print(f"\t\t\tSimualtion Time: {(timeSimulationsEnd - timeSimulationsStart)}s")
+    print(f"\t\t\tTotal Execution Time: {(timeScriptExecutionEnd - timeScriptExecutionStart)}s")
 
 
-def iterateOverScenarios(scenarioList, keyList, paramValues, simParamVals, dseConfig, absoluteResultsPath ):
-	if len(scenarioList) > 0:
-		for scenario in scenarioList:
-			iterateOverParams(scenario, dseConfig['parameters'].keys(), dseConfig['parameters'], {}, dseConfig, absoluteResultsPath)
-	else:
-		iterateOverParams('', dseConfig['parameters'].keys(), dseConfig['parameters'], {}, dseConfig, absoluteResultsPath)
-	
+def getAllParameterCombinations(simParamValues):
+    """
+    Generate all parameter combinations for a given simulation
+    :return: Array of parameter dictionary's
+    """
+    result = []
 
-def iterateOverParams(scenarioID, keyList, paramValues, simParamVals, dseConfig, absoluteResultsPath ):
-	keyListLocal = list(keyList)
-	thisKey = keyListLocal.pop()
-	
-	for val in paramValues[thisKey]:
-		simParamValsLocal = dict(simParamVals)
-		simParamValsLocal[thisKey] = val
-	
-		if len(keyListLocal) >0:
-			iterateOverParams(scenarioID, keyListLocal, paramValues, simParamValsLocal, dseConfig, absoluteResultsPath)
-		else:
-			if checkParameterContraints(simParamValsLocal, dseConfig['parameterConstraints']):
-				defineRunAndEvluatieSimulation(parsed_multimodel_json, scenarioID, simParamValsLocal, dseConfig, absoluteResultsPath, absoluteProjectPath)
-			else:
-				print simParamValsLocal, " does not meet parameter constraints"
-	return
+    for values in itertools.product(*map(simParamValues.get, simParamValues.keys())):
+        result.append(dict(zip(simParamValues.keys(), values)))
 
-def call(args):
-  p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  out,err = p.communicate()
-  for line in out.split(os.linesep):
-    if not line == '':
-      print line
-  for line in err.split(os.linesep):
-    if not line == '':
-      print line  
-  
-print ("Processing command arguments")
-absoluteProjectPath  = sys.argv[1]
-relativeExperimentConfigPath = sys.argv[2]
-#experimentConfigFile = experimentConfigName + DSE_CONFIG_EXTENSION
+    return result
 
+def getAllViableParametersCombinations(paramCombinations, dseParamConstraints):
+    """
+    Finds all viable parameter combinations given combinations and dse constraints, also removed duplicate combinations
+    :return: Array of parameter dictionary's
+    """
+    viableParameters = []
 
-#multiModelConfigName = sys.argv[3]
-#multiModelConfigFile = multiModelConfigName + MULTI_MODEL_EXTENSION
+    for combination in paramCombinations:
+        if checkParamConstraints(combination, dseParamConstraints) and (combination not in viableParameters):
+            viableParameters.append(combination)
 
-relativeCoeConfigFile = sys.argv[3]
-absoluteCoeConfigFile = absoluteProjectPath + os.path.sep + relativeCoeConfigFile
+    return viableParameters
 
-#absoluteExperimentPath = absoluteProjectPath + os.path.sep + DSE_FOLDER + os.path.sep + experimentConfigName + os.path.sep
+def iterateOverScenarios(scenarioList, parameterCombinations, multiModelJson, dseConfig, absResultsPath, basePath, threads, coeEngineConfig, debugOutput=False):
+    if len(scenarioList) == 0:
+        scenarioList = [""]
 
-absoluteExperimentConfigPath = os.path.join(absoluteProjectPath, relativeExperimentConfigPath)
-trimLocation = absoluteExperimentConfigPath.rfind(os.path.sep)
-absoluteExperimentPath = absoluteExperimentConfigPath[:trimLocation] + os.path.sep
+    for scenario in scenarioList:
+        # output queue to ensure thread safety
+        outputQ = []
 
-#absoluteBaseMultiModelPath = absoluteProjectPath + os.path.sep + MULTI_MODEL_FOLDER + os.path.sep + multiModelConfigName + os.path.sep + multiModelConfigFile
+        # print the simulations progress bar if we are not in debug mode
+        iterations = 0
+        if not debugOutput:
+            printProgressBar(iterations, len(parameterCombinations), scenario)
+        # threading
+        with ThreadPoolExecutor(max_workers=threads) as executor:
+            # upping the start of each thread to be 0-4 seconds apart fixed instability on my machine up to 15 concurrent threads
+            sims = { executor.submit(defineRunAndEvaluateSimulation, multiModelJson, scenario, params, dseConfig, absResultsPath, basePath, threads > 1, random.random()*4 if threads > 1 else 0, coeEngineConfig, debugOutput): params for params in parameterCombinations }
 
-absoluteUserScriptPath = absoluteProjectPath + os.path.sep + USER_METRICS_FOLDER + os.path.sep
+            for result in concurrent.futures.as_completed(sims): # get the results as they are finished
+
+                if not debugOutput: # move the progress bar once a sim has finished
+                    iterations += 1
+                    printProgressBar(iterations, len(parameterCombinations), scenario)
+
+                outputQ.append(result.result())
+
+        addSimulationDirToRankingFileThreaded(outputQ, absResultsPath)
 
 
+def scriptArguments() -> argparse.ArgumentParser:
+    # Setup argument parser so that the script is more user friendly
+    parser = argparse.ArgumentParser(description="DSE Exhaustive search algorithm", prog="Algorithm Exhaustive")
 
-if len(sys.argv) == argumentsCountRepairMode:
-	dateTimeFolder = sys.argv[argumentsCountRepairMode - 1]
-else:
-	dateTimeFolder = dateTimeFolderName()
+    # required params
+    parser.add_argument("projectpath", type=str, help="Full top level path to the project")
+    parser.add_argument("dsepath", type=str, help="Path to DSE file (.dse.json) relative to projectpath")
+    parser.add_argument("coepath", type=str, help="Path to COE settings file (coe.json) relative to projectpath")
 
-absoluteResultsPath = absoluteExperimentPath + dateTimeFolder
+    # optional params
+    parser.add_argument("-t", type=validThreadCount, default=1, help="Max thread count (default: 1)")
+    parser.add_argument("-noCSV", action="store_true", help="Dont Generate CSV output")
+    parser.add_argument("-noHTML", action="store_true", help="Dont Generate HTML output")
+    parser.add_argument("-u", type=str, default="http://localhost", help="URL to COE (default: http://localhost)")
+    parser.add_argument("-p", type=validPortNumber, default=8082, help="Port for COE (default: 8082)")
+    parser.add_argument("-d", action="store_true", help="Show debug output (default: False)")
 
-print ("Opening DSE config: " + absoluteExperimentConfigPath)
-dseConfig_data = open(absoluteExperimentConfigPath)
-dseConfig = json.load(dseConfig_data)
-	
-print ("Combining model configs: ")
+    return parser
 
-parsed_multimodel_json = combineModelFiles(absoluteCoeConfigFile, dseConfig, absoluteProjectPath)
 
-#multimodel_json_data = open(absoluteBaseMultiModelPath)
-#json.load(multimodel_json_data)
-
-print ("Creating Date Time folder")
-makeDateTimeFolder(absoluteExperimentPath, dateTimeFolder)
-
-print("Starting the Simulations...")
-timingSimulationsStart = time.time()
-iterateOverScenarios(dseConfig['scenarios'], dseConfig['parameters'].keys(), dseConfig['parameters'], {}, dseConfig, absoluteResultsPath)
-timingSimulationsEnd = time.time()
-print("Simulations complete.")
-
-print("Starting the ranking...")
-call(["python", "Ranking_pareto.py" ,absoluteExperimentPath, absoluteExperimentConfigPath,  absoluteResultsPath])
-print("Ranking complete.")
-print("Generating results page...")
-call(["python", "Output_HTML.py", absoluteExperimentPath, absoluteResultsPath])
-print("Page complete.")
-
-timingScriptEnd = time.time()
-
-print
-print "Timings" 
-print "Total script time:", timingScriptEnd - timingScriptStart, " seconds" 
-print "Total simulation time:", timingSimulationsEnd - timingSimulationsStart, " seconds" 
+runScript()
