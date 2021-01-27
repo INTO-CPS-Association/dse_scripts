@@ -5,7 +5,7 @@ from libs.Common import *
 
 debugOutput = False
 
-def runSimulation():
+def RunCOE():
     global debugOutput
 
     args = scriptArguments().parse_args()
@@ -16,13 +16,13 @@ def runSimulation():
     endTime = args.endTime
     simulationPath = args.simulationPath
 
-    if aResultsFileAlreadyExists(simulationPath):
+    if ResultsFileAlreadyExists(simulationPath):
         print("\t\tResults File Already Exists Skipping Simulation")
     else:
-        runSimulationAndGetResults(url, startTime, endTime, simulationPath)
+        RunSimulationAndGetResults(url, startTime, endTime, simulationPath)
 
 
-def aResultsFileAlreadyExists(simPath):
+def ResultsFileAlreadyExists(simPath):
     """
     Checks if a result has already been generated for a given simulation
     :param simPath: Path to the simulation folder where results would be output
@@ -32,85 +32,75 @@ def aResultsFileAlreadyExists(simPath):
 
     return os.path.exists(resultsFilePath)
 
-def jsonCall(url, data):
-    req = urllib.request.Request(url)
-    req.add_header("Content-Type", "application/json")
-    jsonDataBytes = data.encode("utf-8")
-    return urllib.request.urlopen(req, data=jsonDataBytes)
+def Get(url: str):
+    with urllib.request.urlopen(url) as response:
+        return response.read()
 
-def readAndDecodeResponse(rawResponse):
-    return json.loads(rawResponse.read().decode())
+def Post(url: str, data):
+    request = urllib.request.Request(url)
 
-def runSimulationAndGetResults(url, startTime, endTime, simulationPath):
+    request.add_header("Content-Type", "application/json")
+    encodedRequestData = data.encode("utf-8")
+
+    with urllib.request.urlopen(request, data=encodedRequestData) as response:
+        return response.read()
+
+def GetSessionId(url):
     # create simulation session
     if debugOutput:
         print("\t\tGetting session ID")
 
-    sessionURL = url + "/createSession"
-
-    rawSessionResponse = urllib.request.urlopen(sessionURL)
-
-    decodedResponse = readAndDecodeResponse(rawSessionResponse)
-    sessionId = decodedResponse['sessionId']
+    sessionId = json.loads(Get(f"{url}/createSession").decode())['sessionId']
 
     if debugOutput:
-        print(f"\t\t\tRaw response: {rawSessionResponse}")
-        print(f"\t\t\tDecoded response: {decodedResponse}")
         print(f"\t\t\tSession ID: {sessionId}")
 
-    # init the simulation
-    if debugOutput:
-        print("\t\tInitialising simulation")
+    return sessionId
 
-    configPath = os.path.join(simulationPath, DEFAULT_SIM_CONFIG)
+def PostConfigData(url, sessionId, simPath):
+    configPath = os.path.join(simPath, DEFAULT_SIM_CONFIG)
     with open(configPath, 'r') as f:
         configData = f.read()
-
-    initResponse = jsonCall(url + "/initialize/" + str(sessionId), configData)
+    initResponse = Post(f"{url}/initialize/{sessionId}", configData)
 
     if debugOutput:
         print(f"\t\t\tRaw init response: {initResponse}")
-        print(f"\t\t\tDecoded init response: {json.loads(initResponse.read().decode())}")
 
+def RunSimulation(url, sessionId, startTime, endTime):
     # run the simulation
     if debugOutput:
         print("\t\tStarting simulation")
 
     time.sleep(0.2)
-    runSimResponse = jsonCall(url + "/simulate/" + str(sessionId), f"{{\"startTime\": {startTime}, \"endTime\": {endTime}}}")
+    runSimResponse = Post(f"{url}/simulate/{sessionId}", f"{{\"startTime\": {startTime}, \"endTime\": {endTime}}}")
 
     if debugOutput:
         print(f"\t\t\tRun simulation response: {runSimResponse}")
 
+def GetResults(url, sessionId, simPath):
     # get simulation results
     if debugOutput:
         print("\t\tGetting simulation results")
 
-    resultsURL = url + "/result/" + str(sessionId)
-
     time.sleep(0.2)
-    getResultsResponse = urllib.request.urlopen(resultsURL)
+    resultsURL = f"{url}/result/{sessionId}/plain"
+    getResultsResponse = Get(resultsURL).decode()
 
     if debugOutput:
         print(f"\t\t\tResults response: {getResultsResponse}")
         print("\t\t\tWriting results to file")
 
-    CHUNK = 16 * 1024
-    resultsPath = os.path.join(simulationPath, RESULTS_FILE)
-    with open(resultsPath, 'wb') as f:
-        while True:
-            chunk = getResultsResponse.read(CHUNK)
-            if not chunk:
-                break
-            f.write(chunk)
+    with open(os.path.join(simPath, RESULTS_FILE), "w+") as f:
+        f.write(getResultsResponse)
 
+def DestroySession(url, sessionId):
     # removed the session
     if debugOutput:
         print("\t\tDestroying session")
 
     time.sleep(0.2)
 
-    destroyURL = url + "/destroy/" + str(sessionId)
+    destroyURL = f"{url}/destroy/{sessionId}"
 
     try:
         urllib.request.urlopen(destroyURL)
@@ -121,9 +111,17 @@ def runSimulationAndGetResults(url, startTime, endTime, simulationPath):
                 urllib.request.urlopen(destroyURL)
                 return
             except urllib.error.HTTPError as e:
-                print(f"Error destroying session: {e}")
+                pass
 
     time.sleep(0.2)
+
+def RunSimulationAndGetResults(url, startTime, endTime, simulationPath):
+    sessionId = GetSessionId(url)
+
+    PostConfigData(url, sessionId, simulationPath)
+    RunSimulation(url, sessionId, startTime, endTime)
+    GetResults(url, sessionId, simulationPath)
+    DestroySession(url, sessionId)
 
 def scriptArguments() -> argparse.ArgumentParser:
     # Setup argument parser so that the script is more user friendly
@@ -143,4 +141,4 @@ def scriptArguments() -> argparse.ArgumentParser:
 
 
 if __name__ == "__main__":
-    runSimulation()
+    RunCOE()

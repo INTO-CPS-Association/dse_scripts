@@ -1,6 +1,6 @@
 # INTO CPS DSE Scripts
 
-Updated old Python 2 scripts to Python 3 and added a modular GA system among other minor improvements
+My dissertation project that involved updating [INTO-CPS](https://into-cps.org/) DSE scripts from Python 2 to Python 3 and implementing a modular GA system
 
 ## Highlights
 - Updated to Python 3
@@ -13,15 +13,49 @@ Updated old Python 2 scripts to Python 3 and added a modular GA system among oth
 - Python 3
 - Numpy
 - Matplotlib
+- Maestro Web Api (COE) Version 1.0.10
 
 ## Known Issues
   - Numpy 1.19.4, Python 3.9, and Windows do not play nice and insted requires Numpy 1.19.3
+
+## Usage
+
+```console
+python Algroithm_selector.py C:\INTOProjects\TestProject\ DSEs\new-dse\new-dse.dse.json Multi-models\mm-new\co-sim\coe.json
+```
+
+Where folder structure is:
+```
+C:
+└── INTOProjects
+    └── TestProject
+        ├── DSEs
+        │   └── new-dse
+        │       └── new-dse.dse.json
+        ├── FMUs
+        │   └── (FMUs to run)
+        ├── Multi-models
+        │   └── mm-new
+        │       └── co-sim
+        │           └── coe.json
+        └── userMetricScripts (optional)
+```
+
+Results will be placed in the folder beloning to the dse being run (see below) in a folder named by the date and time the dse was started
+```
+C:
+└── INTOProjects
+    └── TestProject
+        └── DSEs
+            └── new-dse
+                └── <results>
+```
 
 ## Command Line Arguments
 
 (Arguments apply to Algroithm Selector, Exhaustive, and Genetic)
 
-- help
+- `help`
 - `t` Number of threads to use, default 1
 - `noCSV` do not generate CSV result file, default false
 - `noHTML` do not generate HTML result file, default false

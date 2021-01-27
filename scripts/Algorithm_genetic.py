@@ -198,7 +198,8 @@ def createInitialPopulation(nOrgs, initialParams, constraints):
         while True:
             organism = {}
             for k in initialParams:
-                organism[k] = random.random() * (initialParams[k][1] - initialParams[k][0]) + initialParams[k][0]
+                sortedInitialParams = sorted(initialParams[k])
+                organism[k] = random.random() * (sortedInitialParams[1] - sortedInitialParams[0]) + sortedInitialParams[0]
 
             if CheckOrganismConstraints(organism, constraints):
                 break
