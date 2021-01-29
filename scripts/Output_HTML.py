@@ -1,199 +1,139 @@
-import os, sys, json, io, webbrowser, csv, re
+import argparse
+
 from libs.Common import *
 
+# Setup argument parser so that the script is more user friendly
+from libs.Common_Output import trimmedParamName, naturalKeys
 
-absoluteExperimentDir = sys.argv[1]
-absoluteResultsPath = sys.argv[2]
+resutsPath = ""
 
-def atof(text):
-    try:
-        retval = float(text)
-    except ValueError:
-        retval = text
-    return retval
+def runScript():
+    global resultsPath
 
-def natural_keys(text):
-    '''
-    alist.sort(key=natural_keys) sorts in human order
-    http://nedbatchelder.com/blog/200712/human_sorting.html
-    (See Toothy's implementation in the comments)
-    float regex comes from https://stackoverflow.com/a/12643073/190597
-    '''
-    return [ atof(c) for c in re.split(r'[+-]?([0-9]+(?:[.][0-9]*)?|[.][0-9]+)', text) ]
+    args = scriptArguments().parse_args()
+    resultsPath = args.resultsPath
+
+    htmlFileName = os.path.join(resultsPath, HTML_RESULTS)
+    htmlFile = open(htmlFileName, 'w')
+
+    # HTML header
+    htmlFile.write("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">")
+    htmlFile.write("<html xmlns=\"http://www.w3.org/1999/xhtml\">")
+    htmlFile.write("<head>\n")
+    htmlFile.write("<title>DSE Results Page</title>\n")
+    htmlFile.write("<style>")
+    execdir = os.path.dirname(os.path.realpath(__file__))
+    htmlFile.write(includeStyleSheet(os.path.join(execdir, "results.css")))
+    htmlFile.write("\n</style>")
+    htmlFile.write("</head>\n")
+    htmlFile.write("<body>\n")
+
+    # open ranking json
+    with open(os.path.join(resultsPath, RANKING_FILE)) as f:
+        rankingJson = json.load(f)
+
+    rankId = 'pareto'
+
+    htmlFile.write(f"<h1>{rankId}</h1>\n")
+
+    # add the graph to html
+    addGraphsForRanking(rankId, htmlFile)
+
+    # add table with data
+    putRankingIntoTable(rankId, rankingJson, htmlFile)
+
+    # close files
+    htmlFile.write("</body>")
+    htmlFile.write("</html>")
+    htmlFile.close()
+
+# HTML generation helpers
+def addGraphsForRanking(rankId, htmlFile):
+    htmlFile.write(f"<img src=graphs/{rankId}.png>\n")
+    return htmlFile
 
 
-def addGraphsForRanking(rank_id):
-	htmlFile.write('<img src=graphs/' + rank_id + '.png>\n')
+def putRankingIntoTable(rankId, rankingJson, htmlFile):
+    htmlFile.write("<table>\n")
+    addHeadings(htmlFile, rankingJson)
+    addRows(rankId, htmlFile, rankingJson)
+    htmlFile.write("</table>\n")
 
-def putRankingsIntoTable(rank_id):
-	htmlFile.write('<table>\n')
-	addHeadings()
-	addRows(rank_id)
-	htmlFile.write('</table>\n')
-	
-def addRows(rank_id):
-	this_ranking_root = ranking_json[rank_id]
-	sorted_ranks = sorted(this_ranking_root)
-	#sorted_ranks = this_ranking_root
-	sorted_ranks.sort(key=natural_keys)
-	for rank in sorted_ranks:
-		for design in this_ranking_root[rank]:
-			addRow(rank,design)
-			
-def addRow(rank, design):
-	htmlFile.write('<tr>')
-	htmlFile.write('<td>' + rank + '</td>')
-	addObjectiveValues(design)
-	addDesignParameters(design)
-	htmlFile.write('<tr>\n')
-	
-def addDesignParameters(design):
-	configData = open(absoluteResultsPath + os.path.sep + design + os.path.sep + DEFAULT_SIM_CONFIG)
-	config_json = json.load(configData)
-	params_json = config_json['parameters']
-	for param in params_json:
-		htmlFile.write('<td>' + str(params_json[param]) + '</td>')
 
-def addObjectiveValues(design):
-	objectivesData = open(absoluteResultsPath + os.path.sep + design + os.path.sep + OBJECTIVES_FILE)
-	objectives_json = json.load(objectivesData)
-	for objective in objectives_json:
-		htmlFile.write('<td>' + str(objectives_json[objective]) + '</td>')
-	
-def addHeadings():
-	htmlFile.write('<tr>')
-	htmlFile.write('<th>Rank</th>')
-	firstSim = ranking_json['simulations'][0]
-	getObjectiveHeadings(firstSim)
-	getParameterHeadings(firstSim)
-	htmlFile.write('</tr>\n')
-	
-def getObjectiveHeadings(design):
-	objectivesData = open(absoluteResultsPath + os.path.sep + design + os.path.sep + OBJECTIVES_FILE)
-	objectives_json = json.load(objectivesData)
-	for objective in objectives_json:
-		htmlFile.write('<th>' + objective + '</th>')
-	
-	
-def getParameterHeadings(design):
-	configData = open(absoluteResultsPath  + os.path.sep + design + os.path.sep + DEFAULT_SIM_CONFIG)
-	config_json = json.load(configData)
-	params_json = config_json['parameters']
-	for param in params_json:
-		htmlFile.write('<th>' + trimmedParamName(param) + '</th>')
-		
+def addHeadings(htmlFile, rankingJson):
+    htmlFile.write("<tr>")
+    htmlFile.write("<th>Rank</th>")
+    firstSim = rankingJson['simulations'][0]
+    getObjectiveHeadings(firstSim, htmlFile)
+    getParameterHeadings(firstSim, htmlFile)
+    htmlFile.write("</tr>\n")
+
+
+def getObjectiveHeadings(design, htmlFile):
+    with open(os.path.join(resultsPath, design, OBJECTIVES_FILE)) as f:
+        objectivesJson = json.load(f)
+    for objective in objectivesJson:
+        htmlFile.write(f"<th>{objective}</th>")
+
+
+def getParameterHeadings(design, htmlFile):
+    with open(os.path.join(resultsPath, design, DEFAULT_SIM_CONFIG)) as f:
+        configJson = json.load(f)
+    paramsJson = configJson['parameters']
+    for param in paramsJson:
+        htmlFile.write(f"<th>{trimmedParamName(param)}</th>")
+
+
+def addRows(rankId, htmlFile, rankingJson):
+    thisRankingRoot = rankingJson[rankId]
+    sortedRanks = sorted(thisRankingRoot)
+    sortedRanks.sort(key=naturalKeys)
+
+    for rank in sortedRanks:
+        for design in thisRankingRoot[rank]:
+            addRow(rank, design, htmlFile)
+
+
+def addRow(rank, design, htmlFile):
+    htmlFile.write("<tr>")
+    htmlFile.write(f"<td>{rank}</td>")
+    addObjectiveValues(design, htmlFile)
+    addDesignParameters(design, htmlFile)
+    htmlFile.write("</tr>\n")
+
+
+def addObjectiveValues(design, htmlFile):
+    with open(os.path.join(resultsPath, design, OBJECTIVES_FILE)) as f:
+        objectivesJson = json.load(f)
+
+    for objective in objectivesJson:
+        htmlFile.write(f"<td>{objectivesJson[objective]}</td>")
+
+
+def addDesignParameters(design, htmlFile):
+    with open(os.path.join(resultsPath, design, DEFAULT_SIM_CONFIG)) as f:
+        configJson = json.load(f)
+
+    paramsJson = configJson['parameters']
+
+    for param in paramsJson:
+        htmlFile.write(f"<td>{paramsJson[param]}</td>")
+
+
 def includeStyleSheet(fileName):
-	returnString = ""
-	if os.path.exists(fileName):
-		cssFile = open(fileName)
-		return cssFile.read()
-	return ""
-	
-def trimmedParamName(param):
-	tokens = param.split("}")
-	return tokens[1][1:]
-
-def putRankingsIntoCSV(rank_id):
-	addHeadingsToCSV()
-	addRowsToCSV(rank_id)
-	
-def addRowsToCSV(rank_id):
-	this_ranking_root = ranking_json[rank_id]
-	sorted_ranks = sorted(this_ranking_root)
-	#sorted_ranks = this_ranking_root
-	sorted_ranks.sort(key=natural_keys)
-	for rank in sorted_ranks:
-		for design in this_ranking_root[rank]:
-			addRowToCSV(rank,design)
-			
-def addRowToCSV(rank, design):
-	rowData = []
-	rowData.append(rank)
-	addObjectiveValuesToCSVRow(design, rowData)
-	addDesignParametersToCSVRow(design, rowData)
-	csvWriter.writerow(rowData)
-	
-def addDesignParametersToCSVRow(design, currentRow):
-	configData = open(absoluteResultsPath + os.path.sep + design + os.path.sep + DEFAULT_SIM_CONFIG)
-	config_json = json.load(configData)
-	params_json = config_json['parameters']
-	for param in params_json:
-		currentRow.append(str(params_json[param]))
-
-def addObjectiveValuesToCSVRow(design, currentRow):
-	objectivesData = open(absoluteResultsPath + os.path.sep + design + os.path.sep + OBJECTIVES_FILE)
-	objectives_json = json.load(objectivesData)
-	for objective in objectives_json:
-		currentRow.append(str(objectives_json[objective]))
-
-	
-def addHeadingsToCSV():
-	rowData = []
-	rowData.append('Rank')
-	firstSim = ranking_json['simulations'][0]
-	getObjectiveHeadingsForCSVRow(firstSim, rowData)
-	getParameterHeadingsForCSVRow(firstSim, rowData)
-	csvWriter.writerow(rowData)
-	
-def getObjectiveHeadingsForCSVRow(design, currentRow):
-	objectivesData = open(absoluteResultsPath + os.path.sep + design + os.path.sep + OBJECTIVES_FILE)
-	objectives_json = json.load(objectivesData)
-	for objective in objectives_json:
-		currentRow.append(objective)
-
-	
-	
-def getParameterHeadingsForCSVRow(design, currentRow):
-	configData = open(absoluteResultsPath  + os.path.sep + design + os.path.sep + DEFAULT_SIM_CONFIG)
-	config_json = json.load(configData)
-	params_json = config_json['parameters']
-	for param in params_json:
-		currentRow.append(trimmedParamName(param))
-	
+    if os.path.exists(fileName):
+        with open(fileName) as f:
+            cssFile = f.read()
+        return cssFile
+    return ""
 
 
-htmlFileName = absoluteResultsPath + os.path.sep +  HTML_RESULTS
-htmlFile = open(htmlFileName,'w')
+def scriptArguments() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="DSE HTML output", prog="Output HTML")
 
-# create html header
-htmlFile.write ('<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">')
-htmlFile.write ('<html xmlns="http://www.w3.org/1999/xhtml">')
-htmlFile.write ('<head>\n')
-htmlFile.write ('<title>DSE Results Page</title>\n')
-htmlFile.write ('<style>')
-execdir = os.path.dirname(os.path.realpath(__file__))
-htmlFile.write (includeStyleSheet(os.path.join(execdir, 'results.css')))
-htmlFile.write ('\n</style>')
-htmlFile.write ('</head>\n')
-htmlFile.write ('<body>\n')
+    # required params
+    parser.add_argument("resultsPath", type=str, help="Full path to the results")
 
-#csv.register_dialect(lineterminator = "\n")
-csvFileName = os.path.join(absoluteResultsPath,ANALYSIS_RESULTS)
-csvFile = open(csvFileName,'wt')
-csvWriter = csv.writer(csvFile, lineterminator = "\n")
+    return parser
 
-
-# open ranking.json
-json_data = open(absoluteResultsPath + os.path.sep + RANKING_FILE)
-ranking_json = json.load(json_data)
-
-# read in rank ids (just pareto for now)
-rank_id = 'pareto'
-
-# create section
-htmlFile.write('<h1>' + rank_id + '</h1>\n')
-
-# add graph
-addGraphsForRanking(rank_id)
-
-# add table of data with id, objective values and parameters
-putRankingsIntoTable(rank_id)
-putRankingsIntoCSV(rank_id)
-
-# close html
-htmlFile.write ('</body>')
-htmlFile.write ('</html>')
-
-# close file
-htmlFile.close()
-csvFile.close()
+runScript()
