@@ -21,7 +21,7 @@
 ## Usage
 
 ```console
-python Algroithm_selector.py C:\INTOProjects\TestProject\ DSEs\new-dse\new-dse.dse.json Multi-models\mm-new\co-sim\coe.json
+python Algorithm_selector.py C:\INTOProjects\TestProject\ DSEs\new-dse\new-dse.dse.json Multi-models\mm-new\co-sim\coe.json
 ```
 
 Where folder structure is:
