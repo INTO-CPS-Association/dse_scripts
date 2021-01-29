@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(description="Compare simulation results with a 
 
 # required params
 parser.add_argument("simFolder", type=str, help="Full path to the simulation folder")
-parser.add_argument("colId", type=str, help="Name of the colum")
+parser.add_argument("colId", type=str, help="Name of the column")
 parser.add_argument("objType", type=str, help="Type of objective")
 parser.add_argument("objName", type=str, help="Name of objective")
 
@@ -25,9 +25,6 @@ objectivesFile = os.path.join(args.simFolder, OBJECTIVES_FILE)
 colName = args.colId
 objectiveType = args.objType
 objectiveId = args.objName
-
-with open(resultsFile) as f:
-    csvData = csv.reader(f, delimiter=",")
 
 firstVal = True
 firstRow = True
@@ -92,17 +89,19 @@ def updateMean(val):
     resultVal = sum / count
 
 
-for row in csvData:
-    if firstRow:
-        colToRead = getColumnFor(colName, row)
-        firstRow = False
-    else:
-        if objectiveType == "max":
-            updateMax(float(row[colToRead]))
-        elif objectiveType == "min":
-            updateMin(float(row[colToRead]))
-        elif objectiveType == "mean":
-            updateMean(float(row[colToRead]))
+with open(resultsFile) as f:
+    csvData = csv.reader(f, delimiter=",")
+    for row in csvData:
+        if firstRow:
+            colToRead = getColumnFor(colName, row)
+            firstRow = False
+        else:
+            if objectiveType == "max":
+                updateMax(float(row[colToRead]))
+            elif objectiveType == "min":
+                updateMin(float(row[colToRead]))
+            elif objectiveType == "mean":
+                updateMean(float(row[colToRead]))
 
 writeObjectiveToOutfile(objectiveId, resultVal)
 

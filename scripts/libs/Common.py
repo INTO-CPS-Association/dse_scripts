@@ -256,7 +256,7 @@ def processObjectives(simFolder: str, dseConfig, debugOutput=True) -> None:
         print("\t\tProcessing Objectives (default scripts)")
 
     for objectiveName in list(dseConfig["objectiveDefinitions"]["internalFunctions"].keys()):
-        subprocess.call(["python", "Objective_simple", simFolder, dseConfig['objectiveDefinitions']['internalFunctions'][objectiveName]['columnID'], dseConfig['objectiveDefinitions']['internalFunctions'][objectiveName]['objectiveType'], objectiveName])
+        subprocess.call(["python", "Objective_simple.py", simFolder, dseConfig['objectiveDefinitions']['internalFunctions'][objectiveName]['columnID'], dseConfig['objectiveDefinitions']['internalFunctions'][objectiveName]['objectiveType'], objectiveName])
 
 
 def processObjectiveExternalScripts(simFolder: str, dseConfig, absoluteProjectPath: str, scenarioId: str, debugOutput=True) -> None:

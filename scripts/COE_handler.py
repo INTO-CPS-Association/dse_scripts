@@ -114,7 +114,7 @@ def runSimulationAndGetResults(url, startTime, endTime, simulationPath):
 
     try:
         urllib.request.urlopen(destroyURL)
-    except urllib.error.HTTPError as e:
+    except urllib.error.HTTPError:
         while True:
             try:
                 time.sleep(0.5)
