@@ -16,7 +16,7 @@
 - Maestro Web Api (COE) Version 1.0.10
 
 ## Known Issues
-  - Numpy 1.19.4, Python 3.9, and Windows do not play nice and insted requires Numpy 1.19.3
+  - Numpy 1.19.4, Python 3.9, and Windows do not play nice
 
 ## Usage
 
