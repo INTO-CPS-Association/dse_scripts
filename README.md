@@ -1,6 +1,6 @@
 # INTO CPS DSE Scripts
 
-My dissertation project that involved updating [INTO-CPS](https://into-cps.org/) DSE scripts from Python 2 to Python 3 and implementing a modular GA system
+[INTO-CPS](https://into-cps.org/) DSE scripts updated from Python 2 to Python 3 and with added modular GA system for DSE
 
 ## Highlights
 - Updated to Python 3
