@@ -1,6 +1,6 @@
 # INTO CPS DSE Scripts
 
-My dissertation project that involved updating [INTO-CPS](https://into-cps.org/) DSE scripts from Python 2 to Python 3 and implementing a modular GA system
+[INTO-CPS](https://into-cps.org/) DSE scripts updated from Python 2 to Python 3 and with added modular GA system for DSE
 
 ## Highlights
 - Updated to Python 3
@@ -16,12 +16,12 @@ My dissertation project that involved updating [INTO-CPS](https://into-cps.org/)
 - Maestro Web Api (COE) Version 1.0.10
 
 ## Known Issues
-  - Numpy 1.19.4, Python 3.9, and Windows do not play nice and insted requires Numpy 1.19.3
+  - Numpy 1.19.4, Python 3.9, and Windows do not play nice
 
 ## Usage
 
 ```console
-python Algroithm_selector.py C:\INTOProjects\TestProject\ DSEs\new-dse\new-dse.dse.json Multi-models\mm-new\co-sim\coe.json
+python Algorithm_selector.py C:\INTOProjects\TestProject\ DSEs\new-dse\new-dse.dse.json Multi-models\mm-new\co-sim\coe.json
 ```
 
 Where folder structure is:
