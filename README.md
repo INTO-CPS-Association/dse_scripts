@@ -2,6 +2,8 @@
 
 [INTO-CPS](https://into-cps.org/) DSE scripts updated from Python 2 to Python 3 and with added modular GA system for DSE
 
+Please make pull requests to development branch, master branch contains the current release.
+
 ## Highlights
 - Updated to Python 3
 - Powerful command line arguements
