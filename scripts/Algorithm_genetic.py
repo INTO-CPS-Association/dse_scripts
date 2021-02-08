@@ -294,7 +294,7 @@ def GetGAArgsFromDSE(dseJson):
 def GenerateResultsJson(scenarios):
     rankingJson = {"simulations": []}
     for s in scenarios:
-        for g in range(currentGen):
+        for g in range(currentGen + 1):
             genrationName = f"{s}-{g}" if not s == "" else str(g)
 
             with open(os.path.join(baseResultPath, genrationName, "ranking.json"), "r") as f:
