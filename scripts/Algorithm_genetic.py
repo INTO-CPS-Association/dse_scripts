@@ -98,11 +98,11 @@ def runScript():
 
     if not args.noHTML:
         print("\t\tGenerating HTML results page")
-        subprocess.call(["python", "Output_HTML.py", baseResultPath])
+        subprocess.Popen(["python", "Output_HTML.py", baseResultPath])
 
     if not args.noCSV:
         print("\t\tGenerating CSV results page")
-        subprocess.call(["python", "Output_CSV.py", baseResultPath])
+        subprocess.Popen(["python", "Output_CSV.py", baseResultPath])
 
 
 def OrganismFitness(organism, resultParam):

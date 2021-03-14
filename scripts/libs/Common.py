@@ -76,8 +76,8 @@ def __canReadFile__(path: str):
     :param path: Full path to the file
     :except IOException if the file cannot be read
     """
-    file = open(path, 'r')
-    file.close()
+    with open(path, 'r'):
+        pass
 
 
 def validConfigPath(value: str) -> str:
@@ -167,7 +167,7 @@ def defineRunAndEvaluateSimulation(parsedMultiModelJson: str, scenarioID, simPar
     :return: folder name containing simulation results
     note:: When mutiple simulation threads are being used it is the job of the caller to add simulation result directories to objectives.json
     """
-    time.sleep(startDelay)
+    time.sleep(0)
 
     # define the simulation
     (simFolder, filePath) = createOutputPath(scenarioID, simParamVals, absoluteResultsPath, debugOutput)
@@ -210,10 +210,9 @@ def createSimJson(parsedMultiModelJson, simParamVals, filePath: str, debugOutput
         configParams[key] = simParamVals[key]
 
     jsonOutput = json.dumps(parsedMultiModelJson, sort_keys=True, indent=4, separators=(",", ":"))
-    jsonOutputFile = open(filePath, 'w')
+    with open(filePath, 'w') as jsonOutputFile:
+        jsonOutputFile.write(jsonOutput)
 
-    jsonOutputFile.write(jsonOutput)
-    jsonOutputFile.close()
     if debugOutput:
         print("\t\t\tConfig created")
 
@@ -299,9 +298,8 @@ def addSimulationDirToRankingFile(simFolder: str, absoluteResultsPath: str) -> N
 
     # load the ranking.json file
     if os.path.isfile(os.path.join(absoluteResultsPath, RANKING_FILE)):
-        jsonData = open(os.path.join(absoluteResultsPath, RANKING_FILE))
-        rankingJson = json.load(jsonData)
-        jsonData.close()
+        with open(os.path.join(absoluteResultsPath, RANKING_FILE)) as jsonData:
+            rankingJson = json.load(jsonData)
 
     # add the new folder to the json
     simulationsFolder = rankingJson['simulations']
@@ -319,9 +317,8 @@ def addSimulationDirToRankingFileThreaded(folderNames, absoluteResutsPath: str) 
 
     # load rankings.json file if it exists
     if os.path.isfile(os.path.join(absoluteResutsPath, RANKING_FILE)):
-        jsonData = open(os.path.join(absoluteResutsPath, RANKING_FILE))
-        rankingJson = json.load(jsonData)
-        jsonData.close()
+        with open(os.path.join(absoluteResutsPath, RANKING_FILE)) as jsonData:
+            rankingJson = json.load(jsonData)
 
     # append the new folders
     simulationsFolder = rankingJson["simulations"]
