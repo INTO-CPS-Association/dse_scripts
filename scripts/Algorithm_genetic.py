@@ -165,7 +165,7 @@ def RunCOESim(generation, organisms):
 
     outputQ = []
     with ThreadPoolExecutor(max_workers=threads) as executor:
-        sims = { executor.submit(defineRunAndEvaluateSimulation, parsedMMJson, scenario, organism, dseConfig, resultPath, basePath, threads > 1, random.random() * 4 if threads > 1 else 0, coeConfig, debugOutput): organism for organism in orgsToSimulate }
+        sims = { executor.submit(defineRunAndEvaluateSimulation, parsedMMJson, scenario, organism, dseConfig, resultPath, basePath, threads > 1, coeConfig, debugOutput): organism for organism in orgsToSimulate }
 
         for result in as_completed(sims):
             outputQ.append(result.result())

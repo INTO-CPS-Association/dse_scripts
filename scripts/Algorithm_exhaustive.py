@@ -134,7 +134,7 @@ def iterateOverScenarios(scenarioList, parameterCombinations, multiModelJson, ds
         # threading
         with ThreadPoolExecutor(max_workers=threads) as executor:
             # upping the start of each thread to be 0-4 seconds apart fixed instability on my machine up to 15 concurrent threads
-            sims = { executor.submit(defineRunAndEvaluateSimulation, multiModelJson, scenario, params, dseConfig, absResultsPath, basePath, threads > 1, random.random()*4 if threads > 1 else 0, coeEngineConfig, debugOutput): params for params in parameterCombinations }
+            sims = { executor.submit(defineRunAndEvaluateSimulation, multiModelJson, scenario, params, dseConfig, absResultsPath, basePath, threads > 1, coeEngineConfig, debugOutput): params for params in parameterCombinations }
 
             for result in concurrent.futures.as_completed(sims): # get the results as they are finished
 

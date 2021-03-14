@@ -151,7 +151,7 @@ def makeDirName(scenarioID: str, simParamVals: list)-> str:
 
 # Simulation #
 def defineRunAndEvaluateSimulation(parsedMultiModelJson: str, scenarioID, simParamVals, dseConfig, absoluteResultsPath,
-                                   absoluteProjectPath, threaded=False, startDelay=0,
+                                   absoluteProjectPath, threaded=False,
                                    coeEngineParams=["-u http://localhost", "-p 8082"], debugOutput=False) -> str:
     """
     Will create a folder for simulation results, run a simulation, and store the results in the folder
@@ -162,12 +162,10 @@ def defineRunAndEvaluateSimulation(parsedMultiModelJson: str, scenarioID, simPar
     :param absoluteResultsPath: Absolute path to the results directory
     :param absoluteProjectPath: Absolute path to the project directory
     :param threaded: Are mutiple simulations being run in paralle
-    :param startDelay: Recommended to use when threading to prevent overloading COE with requests
     :param coeEngineParams: Params used to connect to the COE, default is http://localhost:8082 and should be in the format ["-u [url]", "-p [port]"]
     :return: folder name containing simulation results
     note:: When mutiple simulation threads are being used it is the job of the caller to add simulation result directories to objectives.json
     """
-    time.sleep(0)
 
     # define the simulation
     (simFolder, filePath) = createOutputPath(scenarioID, simParamVals, absoluteResultsPath, debugOutput)
