@@ -374,6 +374,8 @@ def makeFMUPathsAbsolute(fmusSection, absoluteProjectPath: str) -> None:
 def makeFMUPathsURIs(fmusSection, absoluteProjectPath: str) -> None:
     for fmu in fmusSection:
         tempPath = os.path.join(absoluteProjectPath, FMUS_FOLDER, fmusSection[fmu])
+        if tempPath[0] == '/':
+            tempPath = tempPath[1:]
         fmusSection[fmu] = "file:///" + tempPath.replace(os.path.sep, '/')
 
 #######################
