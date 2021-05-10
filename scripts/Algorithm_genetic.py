@@ -98,11 +98,11 @@ def runScript():
 
     if not args.noHTML:
         print("\t\tGenerating HTML results page")
-        subprocess.call(["python", "Output_HTML.py", baseResultPath])
+        subprocess.Popen(["python", "Output_HTML.py", baseResultPath])
 
     if not args.noCSV:
         print("\t\tGenerating CSV results page")
-        subprocess.call(["python", "Output_CSV.py", baseResultPath])
+        subprocess.Popen(["python", "Output_CSV.py", baseResultPath])
 
 
 def OrganismFitness(organism, resultParam):
@@ -165,7 +165,7 @@ def RunCOESim(generation, organisms):
 
     outputQ = []
     with ThreadPoolExecutor(max_workers=threads) as executor:
-        sims = { executor.submit(defineRunAndEvaluateSimulation, parsedMMJson, scenario, organism, dseConfig, resultPath, basePath, threads > 1, random.random() * 4 if threads > 1 else 0, coeConfig, debugOutput): organism for organism in orgsToSimulate }
+        sims = { executor.submit(defineRunAndEvaluateSimulation, parsedMMJson, scenario, organism, dseConfig, resultPath, basePath, threads > 1, coeConfig, debugOutput): organism for organism in orgsToSimulate }
 
         for result in as_completed(sims):
             outputQ.append(result.result())
@@ -294,7 +294,7 @@ def GetGAArgsFromDSE(dseJson):
 def GenerateResultsJson(scenarios):
     rankingJson = {"simulations": []}
     for s in scenarios:
-        for g in range(currentGen):
+        for g in range(currentGen + 1):
             genrationName = f"{s}-{g}" if not s == "" else str(g)
 
             with open(os.path.join(baseResultPath, genrationName, "ranking.json"), "r") as f:

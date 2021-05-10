@@ -1,5 +1,5 @@
 import argparse
-import urllib.request, urllib.error, urllib.parse
+import requests
 
 from libs.Common import *
 
@@ -32,12 +32,6 @@ def aResultsFileAlreadyExists(simPath):
 
     return os.path.exists(resultsFilePath)
 
-def jsonCall(url, data):
-    req = urllib.request.Request(url)
-    req.add_header("Content-Type", "application/json")
-    jsonDataBytes = data.encode("utf-8")
-    return urllib.request.urlopen(req, data=jsonDataBytes)
-
 def readAndDecodeResponse(rawResponse):
     return json.loads(rawResponse.read().decode())
 
@@ -46,84 +40,85 @@ def runSimulationAndGetResults(url, startTime, endTime, simulationPath):
     if debugOutput:
         print("\t\tGetting session ID")
 
-    sessionURL = url + "/createSession"
+    rawSessionResponse = requests.get(f"{url}/createSession")
 
-    rawSessionResponse = urllib.request.urlopen(sessionURL)
+    if not rawSessionResponse.status_code == 200:
+        raise Exception("Failed to create session")
 
-    decodedResponse = readAndDecodeResponse(rawSessionResponse)
-    sessionId = decodedResponse['sessionId']
+    sessionId = json.loads(rawSessionResponse.text)['sessionId']
 
     if debugOutput:
-        print(f"\t\t\tRaw response: {rawSessionResponse}")
-        print(f"\t\t\tDecoded response: {decodedResponse}")
+        print(f"\t\t\tRaw response: {rawSessionResponse.text}")
         print(f"\t\t\tSession ID: {sessionId}")
 
-    # init the simulation
-    if debugOutput:
-        print("\t\tInitialising simulation")
+    try:
+        # init the simulation
+        if debugOutput:
+            print("\t\tInitialising simulation")
 
-    configPath = os.path.join(simulationPath, DEFAULT_SIM_CONFIG)
-    with open(configPath, 'r') as f:
-        configData = f.read()
+        configPath = os.path.join(simulationPath, DEFAULT_SIM_CONFIG)
+        with open(configPath, 'r') as f:
+            # Remove the whitespace from the file so we arnt sending as much data
+            configData = f.read().replace("\n", "").replace(" ", "")
 
-    initResponse = jsonCall(url + "/initialize/" + str(sessionId), configData)
+        initResponse = requests.post(f"{url}/initialize/{sessionId}", json=json.loads(configData))
 
-    if debugOutput:
-        print(f"\t\t\tRaw init response: {initResponse}")
-        print(f"\t\t\tDecoded init response: {json.loads(initResponse.read().decode())}")
+        if not initResponse.status_code == 200:
+            raise Exception("Could not initialise session")
 
-    # run the simulation
-    if debugOutput:
-        print("\t\tStarting simulation")
+        if debugOutput:
+            print(f"\t\t\tRaw init response: {initResponse}")
+            print(f"\t\t\tDecoded init response: {initResponse.text}")
 
-    time.sleep(0.2)
-    runSimResponse = jsonCall(url + "/simulate/" + str(sessionId), f"{{\"startTime\": {startTime}, \"endTime\": {endTime}}}")
+        # run the simulation
+        if debugOutput:
+            print("\t\tStarting simulation")
 
-    if debugOutput:
-        print(f"\t\t\tRun simulation response: {runSimResponse}")
+        time.sleep(0.2)
+        requests.post(f"{url}/executeViaCLI/{sessionId}", json={"executeViaCLI": True})
+        runSimResponse = requests.post(f"{url}/simulate/{sessionId}", json=json.loads(f"{{\"startTime\": {startTime}, \"endTime\": {endTime}}}"))
 
-    # get simulation results
-    if debugOutput:
-        print("\t\tGetting simulation results")
+        if not runSimResponse.status_code == 200:
+            raise Exception(f"Failed to simulate: {runSimResponse.text}")
 
-    resultsURL = url + "/result/" + str(sessionId) + "/plain"
+        if debugOutput:
+            print(f"\t\t\tRun simulation response: {runSimResponse}")
 
-    time.sleep(0.2)
-    getResultsResponse = urllib.request.urlopen(resultsURL)
+        # get simulation results
+        if debugOutput:
+            print("\t\tGetting simulation results")
 
-    if debugOutput:
-        print(f"\t\t\tResults response: {getResultsResponse}")
-        print("\t\t\tWriting results to file")
+        r = requests.get(f"{url}/result/{sessionId}/zip", stream=True)
 
-    CHUNK = 16 * 1024
-    resultsPath = os.path.join(simulationPath, RESULTS_FILE)
-    with open(resultsPath, 'wb') as f:
-        while True:
-            chunk = getResultsResponse.read(CHUNK)
-            if not chunk:
-                break
+        with open(os.path.join(simulationPath, "results zip.zip"), "wb+") as f:
+            for chunk in r.iter_content(chunk_size=128):
+                f.write(chunk)
+
+        getResultsResponse = requests.get(f"{url}/result/{sessionId}/plain")
+
+        if not getResultsResponse.status_code == 200:
+            raise Exception("Failed to get results")
+
+        if debugOutput:
+            print(f"\t\t\tResults response: {getResultsResponse}")
+            print("\t\t\tWriting results to file")
+
+        # CHUNK = 16 * 1024
+        resultsPath = os.path.join(simulationPath, RESULTS_FILE)
+        with open(resultsPath, 'w+') as f:
+            chunk = getResultsResponse.text.replace("\r\n", "\n")
             f.write(chunk)
 
-    # removed the session
-    if debugOutput:
-        print("\t\tDestroying session")
+    finally:
+        # removed the session
+        if debugOutput:
+            print("\t\tDestroying session")
 
-    time.sleep(0.2)
+        time.sleep(0.2)
 
-    destroyURL = url + "/destroy/" + str(sessionId)
-
-    try:
-        urllib.request.urlopen(destroyURL)
-    except urllib.error.HTTPError:
-        while True:
-            try:
-                time.sleep(0.5)
-                urllib.request.urlopen(destroyURL)
-                return
-            except urllib.error.HTTPError as e:
-                print(f"Error destroying session: {e}")
-
-    time.sleep(0.2)
+        while not requests.get(f"{url}/destroy/{sessionId}").status_code == 200:
+            print("Failed to destroy session will retry")
+            time.sleep(0.2)
 
 def scriptArguments() -> argparse.ArgumentParser:
     # Setup argument parser so that the script is more user friendly
